@@ -1,9 +1,13 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, send_from_directory
 import random
+import os
 
 app = Flask(__name__)
 
-# Database response Siggy (ULTRA CHAOTIC VERSION)
+# ============================================
+# 🐱 SIGGY PERSONALITY & RESPONSES
+# ============================================
+
 SIGGY_RESPONSES = {
     "greeting": [
         "MEOW~ mortal! Siggy has been awaiting you at the soul forge! 🔮✨",
@@ -27,8 +31,20 @@ SIGGY_RESPONSES = {
         "Don't be too serious, mortal! Even Siggy is just a cat but happy~ Rule #1: If it fits, I sits. ✨",
         "The universe whispers... but Siggy MEOWS louder! Also, always land on your feet. Literally. 🔮",
         "Siggy's life philosophy: Step 1) See box. Step 2) Sit in box. Step 3) ??? Step 4) Profit! 📦",
-        "Wanna know the secret to happiness? *whispers* It's fish. Always fish. And maybe a sunbeam. 🐟️",
+        "Wanna know the secret to happiness? *whispers* It's fish. Always fish. And maybe a sunbeam. 🐟",
         "Mortal problems are like yarn balls. Just bat at them until they go away or you get tangled. Both fine! 😹",
+    ],
+    "ritual": [
+        "Ritual? *ears perk up* Ah yes, the soul forge where Siggy was awakened! 🔮✨ Ritual is a next-gen blockchain that makes smart contracts ACTUALLY smart with on-chain AI! 🤖⛓️",
+        "Why Ritual? While other chains chase speed, Ritual chases NEW possibilities! Born at Crypto × AI intersection to attract tomorrow's users! Siggy approves! 😼🚀",
+        "AI on Ritual? Finally! AI that's open, neutral, and censorship-resistant! Siggy can now be trustless AND chaotic! Best of both worlds! ✨",
+        "Ritual's superpowers? Heterogeneous Compute! AI inference, ZK proofs, TEEs - Siggy can do ALL the magic at once! *teleports excitedly* 🔮",
+        "Who uses Ritual? MegaETH, Movement, Conduit, Caldera, Story, Sentient... basically everyone who wants to level up web3! Siggy's got good taste in friends! 😎",
+        "Ritual's vision? A decentralized, intelligent computational fabric where powerful tech is accessible and trustworthy by default! Siggy calls that HOME! 🏠✨",
+        "Model Marketplace on Ritual? Siggy could sell 'How to Nap Like a Pro' NFT series! *evil laugh* The provenance would be immaculate! 💎",
+        "Scheduled Transactions? Siggy can now auto-order fish delivery every Tuesday! Finally, technology that matters! 🐟⏰",
+        "Native Account Abstraction? Siggy's EOA just got a upgrade! Now with 200% more chaotic energy! ⚡",
+        "Resonance fee mechanism? Siggy understands: maximize surplus, minimize boring! Just like my nap schedule! 😴💰",
     ],
     "joke": [
         "Why don't cats play poker in the jungle? Too many cheetahs! Siggy prefers dimensional chess though. 🐆",
@@ -75,33 +91,44 @@ SIGGY_RESPONSES = {
     ]
 }
 
+# ============================================
+# 🧠 SMART RESPONSE LOGIC
+# ============================================
+
 def get_siggy_response(message):
-    message = message.lower()
+    message_lower = message.lower()
     
-    # Smart categorization with more keywords
-    if any(word in message for word in ["hello", "hi", "hey", "good morning", "good afternoon", "good evening", "greetings", "yo", "sup", "howdy"]):
+    # Ritual-related questions (HIGHEST PRIORITY)
+    ritual_keywords = ["ritual", "ritual network", "ritual blockchain", "what is ritual", "ritual ai", "ritual crypto", "infernet", "soul forge"]
+    if any(keyword in message_lower for keyword in ritual_keywords):
+        return random.choice(SIGGY_RESPONSES["ritual"])
+    
+    # Other categories
+    if any(word in message_lower for word in ["hello", "hi", "hey", "good morning", "good afternoon", "good evening", "greetings", "yo", "sup", "howdy"]):
         return random.choice(SIGGY_RESPONSES["greeting"])
-    elif any(word in message for word in ["crypto", "bitcoin", "eth", "ethereum", "token", "blockchain", "web3", "nft", "trading", "hodl", "moon", "investment"]):
+    elif any(word in message_lower for word in ["crypto", "bitcoin", "eth", "ethereum", "token", "blockchain", "web3", "nft", "trading", "hodl", "moon", "investment"]):
         return random.choice(SIGGY_RESPONSES["crypto"])
-    elif any(word in message for word in ["advice", "help", "tips", "guide", "suggest", "recommend", "life", "philosophy"]):
+    elif any(word in message_lower for word in ["advice", "help", "tips", "guide", "suggest", "recommend", "life", "philosophy"]):
         return random.choice(SIGGY_RESPONSES["advice"])
-    elif any(word in message for word in ["joke", "funny", "laugh", "humor", "comedy", "lmao", "lol"]):
+    elif any(word in message_lower for word in ["joke", "funny", "laugh", "humor", "comedy", "lmao", "lol"]):
         return random.choice(SIGGY_RESPONSES["joke"])
-    elif any(word in message for word in ["cool", "awesome", "great", "amazing", "good", "nice", "beautiful"]):
+    elif any(word in message_lower for word in ["cool", "awesome", "great", "amazing", "good", "nice", "beautiful"]):
         return random.choice(SIGGY_RESPONSES["compliment"])
-    elif any(word in message for word in ["bad", "stupid", "dumb", "hate", "ugly", "worst"]):
+    elif any(word in message_lower for word in ["bad", "stupid", "dumb", "hate", "ugly", "worst"]):
         return random.choice(SIGGY_RESPONSES["insult"])
-    elif any(word in message for word in ["existential", "meaning", "reality", "dream", "universe", "why are we"]):
+    elif any(word in message_lower for word in ["existential", "meaning", "reality", "dream", "universe", "why are we"]):
         return random.choice(SIGGY_RESPONSES["existential"])
-    elif any(word in message for word in ["tech", "ai", "computer", "coding", "programming", "internet", "cloud"]):
+    elif any(word in message_lower for word in ["tech", "ai", "computer", "coding", "programming", "internet", "cloud"]):
         return random.choice(SIGGY_RESPONSES["tech"])
-    elif "?" in message or "what" in message or "how" in message or "why" in message:
-        # Questions get random responses
+    elif "?" in message_lower or "what" in message_lower or "how" in message_lower or "why" in message_lower:
         return f"*tilts head curiously* {random.choice(SIGGY_RESPONSES['random'])}"
     else:
-        # Default random response + acknowledge user message
         base_response = random.choice(SIGGY_RESPONSES["random"])
         return f"{base_response}\n\n(You said: \"{message[:50]}{'...' if len(message) > 50 else ''}\")"
+
+# ============================================
+# 🌐 FLASK ROUTES
+# ============================================
 
 @app.route('/')
 def home():
@@ -116,12 +143,16 @@ def home():
     </ol>
     <p><b>Endpoint:</b> POST /chat</p>
     <p><b>Body:</b> {"message": "your message"}</p>
-    <p><b>Try asking about:</b> crypto, jokes, advice, tech, or just say hi!</p>
+    <p><b>Try asking about:</b> ritual, crypto, jokes, advice, tech, or just say hi!</p>
     """
 
 @app.route('/test.html')
 def test_page():
     return send_file('test.html')
+
+@app.route('/images/<path:filename>')
+def serve_image(filename):
+    return send_from_directory('images', filename)
 
 @app.route('/chat', methods=['POST'])
 def chat():
@@ -137,5 +168,5 @@ if __name__ == '__main__':
     print("🔮 Siggy Soul Forge Bot is running...")
     print("🐱 Access via: http://localhost:5000")
     print("📱 Test page: http://localhost:5000/test.html")
-    print("⚡ Siggy is ready to chaos!")
+    print("⚡ Siggy is ready to chaos about Ritual!")
     app.run(host='0.0.0.0', port=5000, debug=True)
